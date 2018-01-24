@@ -1,4 +1,4 @@
-.PHONY: build run test lint
+.PHONY: build run test lint generate
 
 default: run
 
@@ -15,4 +15,8 @@ test:
 lint:
 	go get github.com/alecthomas/gometalinter
 	gometalinter --install --force
-	gometalinter --fast --tests --vendor --disable=gas --disable=gotype ./...
+	gometalinter --fast --tests --vendor --disable=gas --disable=gotype -e mocks ./...
+
+generate:
+	go get github.com/vektra/mockery/.../
+	mockery -all -dir "./cache" -output "./cache/mocks"
