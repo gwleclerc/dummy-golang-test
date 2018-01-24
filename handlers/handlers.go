@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/gwleclerc/dummy-golang-test/cache"
@@ -32,6 +33,9 @@ func (ch CacheHandler) Get(c echo.Context) error {
 func (ch CacheHandler) Set(c echo.Context) error {
 	key := c.Param("key")
 	value := c.FormValue("value")
+	if value == "" {
+		return c.String(http.StatusBadRequest, fmt.Sprintf("Value for key '%v' is empty", key))
+	}
 	store := c.Get("cache").(cache.Cache)
 	err := store.Set(key, value)
 	if err != nil {

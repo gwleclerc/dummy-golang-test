@@ -3,6 +3,7 @@ package main
 import (
 	"log"
 
+	"github.com/facebookgo/grace/gracehttp"
 	"github.com/gwleclerc/dummy-golang-test/cache"
 	"github.com/gwleclerc/dummy-golang-test/handlers"
 	"github.com/labstack/echo"
@@ -33,5 +34,6 @@ func main() {
 		redis.GET("/:key", cacheHandler.Get)
 		redis.POST("/:key", cacheHandler.Set)
 	}
-	e.Logger.Fatal(e.Start(":8080"))
+	e.Server.Addr = ":8080"
+	e.Logger.Fatal(gracehttp.Serve(e.Server))
 }

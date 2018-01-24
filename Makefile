@@ -3,9 +3,11 @@
 default: run
 
 build:
+	go get
 	go build
 
 run:
+	go get
 	go get github.com/skelterjohn/rerun
 	rerun github.com/gwleclerc/dummy-golang-test
 
@@ -33,3 +35,7 @@ convey:
 generate:
 	go get github.com/vektra/mockery/.../
 	mockery -all -dir "./cache" -output "./cache/mocks"
+
+venom:
+	go get github.com/ovh/venom/...
+	cd ./integration && venom run --details high

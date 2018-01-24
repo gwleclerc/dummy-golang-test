@@ -127,6 +127,19 @@ func TestCacheHandler(t *testing.T) {
 				So(cacheMock.AssertExpectations(t), ShouldBeTrue)
 			})
 
+			// empty value case
+			Convey("with empty value", func() {
+				const expectedRes = "Value for key 'test' is empty"
+				request.Form = url.Values{
+					"value": []string{},
+				}
+				err = handler.Set(context)
+				So(err, ShouldBeNil)
+				So(recorder.Code, ShouldEqual, http.StatusBadRequest)
+				So(recorder.Body.String(), ShouldEqual, expectedRes)
+				So(cacheMock.AssertExpectations(t), ShouldBeTrue)
+			})
+
 		})
 	})
 }

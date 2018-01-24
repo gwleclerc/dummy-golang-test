@@ -1,0 +1,23 @@
+name: Cache
+testcases:
+- name: Simple Set
+  steps:
+    - type: http
+      method: POST
+      url: http://localhost:8080/redis/test
+      body: value=test_content
+      headers:
+        'Content-Type': 'application/x-www-form-urlencoded'
+      assertions:
+        - result.body ShouldContainSubstring 'Value stored successfully'
+        - result.statuscode ShouldEqual 200
+        - result.timeseconds ShouldBeLessThan 1
+- name: Simple Get
+  steps:
+    - type: http
+      method: GET
+      url: http://localhost:8080/redis/test
+      assertions:
+        - result.body ShouldContainSubstring 'test_content'
+        - result.statuscode ShouldEqual 200
+        - result.timeseconds ShouldBeLessThan 1
