@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/gwleclerc/dummy-golang-test/cache"
+	"github.com/gwleclerc/dummy-golang-test/errs"
 	"github.com/labstack/echo"
 )
 
@@ -18,9 +19,10 @@ func NewCacheHandler() Cache {
 // Get value from cache
 func (ch Cache) Get(c echo.Context) error {
 	key := c.Param("key")
-	value, err := cache.Redis.Get(key)
+	store := c.Get("cache").(cache.Cache)
+	value, err := store.Get(key)
 	if err != nil {
-		return c.String(http.StatusBadRequest, err.Error())
+		return c.String(http.StatusBadRequest, errs.Errorf("Can't get value for key '%v'", err, key))
 	}
 
 	return c.String(http.StatusOK, value)
@@ -30,9 +32,10 @@ func (ch Cache) Get(c echo.Context) error {
 func (ch Cache) Set(c echo.Context) error {
 	key := c.Param("key")
 	value := c.FormValue("value")
-	err := cache.Redis.Set(key, value)
+	store := c.Get("cache").(cache.Cache)
+	err := store.Set(key, value)
 	if err != nil {
-		return c.String(http.StatusBadRequest, err.Error())
+		return c.String(http.StatusBadRequest, errs.Errorf("Can't set value for key '%v'", err, key))
 	}
 	return c.String(http.StatusOK, "Value stored successfully")
 }
