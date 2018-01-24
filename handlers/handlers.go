@@ -8,16 +8,16 @@ import (
 	"github.com/labstack/echo"
 )
 
-// Cache handler
-type Cache struct{}
+// CacheHandler structure
+type CacheHandler struct{}
 
 // NewCacheHandler instance
-func NewCacheHandler() Cache {
-	return Cache{}
+func NewCacheHandler() CacheHandler {
+	return CacheHandler{}
 }
 
 // Get value from cache
-func (ch Cache) Get(c echo.Context) error {
+func (ch CacheHandler) Get(c echo.Context) error {
 	key := c.Param("key")
 	store := c.Get("cache").(cache.Cache)
 	value, err := store.Get(key)
@@ -29,7 +29,7 @@ func (ch Cache) Get(c echo.Context) error {
 }
 
 // Set value into cache
-func (ch Cache) Set(c echo.Context) error {
+func (ch CacheHandler) Set(c echo.Context) error {
 	key := c.Param("key")
 	value := c.FormValue("value")
 	store := c.Get("cache").(cache.Cache)

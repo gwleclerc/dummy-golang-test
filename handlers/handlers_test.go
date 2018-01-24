@@ -9,10 +9,10 @@ import (
 
 	"github.com/gwleclerc/dummy-golang-test/cache/mocks"
 	"github.com/gwleclerc/dummy-golang-test/handlers"
+	"github.com/stretchr/testify/mock"
 
 	"github.com/labstack/echo"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
+	. "github.com/smartystreets/goconvey/convey"
 )
 
 func initCtx(c echo.Context, path, key, value string) echo.Context {
@@ -22,110 +22,111 @@ func initCtx(c echo.Context, path, key, value string) echo.Context {
 	return c
 }
 
-func TestHandlerGet(t *testing.T) {
-	assert := assert.New(t)
-	const expectedContent = "test content"
+func TestCacheHandler(t *testing.T) {
+	Convey("Using Cache Handler", t, func() {
 
-	// Setup
-	e := echo.New()
-	req := httptest.NewRequest(echo.GET, "/redis/test", nil)
-	rec := httptest.NewRecorder()
-	c := e.NewContext(req, rec)
-	c = initCtx(c, "/redis/:key", "key", "test")
-	store := new(mocks.Cache)
-	store.On("Get", "test").Return(expectedContent, nil).Once()
-	c.Set("cache", store)
-	h := handlers.NewCacheHandler()
+		var (
+			engine    *echo.Echo
+			recorder  *httptest.ResponseRecorder
+			context   echo.Context
+			cacheMock *mocks.Cache
+			handler   handlers.CacheHandler
+			err       error
+		)
 
-	// Assertions
-	if assert.NoError(h.Get(c)) {
-		assert.Equal(http.StatusOK, rec.Code)
-		assert.Equal(expectedContent, rec.Body.String())
-		assert.True(store.AssertExpectations(t))
-	}
-}
+		// Init echo
+		engine = echo.New()
+		recorder = httptest.NewRecorder()
+		handler = handlers.NewCacheHandler()
 
-func TestHandlerGetError(t *testing.T) {
-	assert := assert.New(t)
-	const expectedError = "test error"
-	const expectedRes = "Can't get value for key 'test': test error"
+		// CacheHandler.Get
+		Convey("When I try to Get 'test' key", func() {
 
-	// Setup
-	e := echo.New()
-	req := httptest.NewRequest(echo.GET, "/redis/test", nil)
-	rec := httptest.NewRecorder()
-	c := e.NewContext(req, rec)
-	c = initCtx(c, "/redis/:key", "key", "test")
-	store := new(mocks.Cache)
-	store.On("Get", "test").Return("", fmt.Errorf(expectedError)).Once()
-	c.Set("cache", store)
-	h := handlers.NewCacheHandler()
+			//Init
+			var (
+				request *http.Request
+			)
+			request = httptest.NewRequest(echo.GET, "/redis/test", nil)
+			context = engine.NewContext(request, recorder)
+			context = initCtx(context, "/redis/:key", "key", "test")
+			cacheMock = new(mocks.Cache)
+			context.Set("cache", cacheMock)
 
-	// Assertions
-	if assert.NoError(h.Get(c)) {
-		assert.Equal(http.StatusBadRequest, rec.Code)
-		assert.Equal(expectedRes, rec.Body.String())
-		assert.True(store.AssertExpectations(t))
-	}
-}
+			// straight case
+			Convey("with existing value in cache", func() {
+				const expectedContent = "test content"
+				cacheMock.On("Get", "test").Return(expectedContent, nil).Once()
+				err = handler.Get(context)
 
-func TestHandlerSet(t *testing.T) {
-	assert := assert.New(t)
-	const savedContent = "test content"
-	const expectedMsg = "Value stored successfully"
+				So(err, ShouldBeNil)
+				So(recorder.Code, ShouldEqual, http.StatusOK)
+				So(recorder.Body.String(), ShouldEqual, expectedContent)
+				So(cacheMock.AssertExpectations(t), ShouldBeTrue)
+			})
 
-	// Setup
-	e := echo.New()
-	req := httptest.NewRequest(echo.POST, "/redis/test", nil)
-	req.Form = url.Values{
-		"value": []string{savedContent},
-	}
-	req.Header = http.Header{"Content-Type": []string{"form-data"}}
-	rec := httptest.NewRecorder()
-	c := e.NewContext(req, rec)
-	c = initCtx(c, "/redis/:key", "key", "test")
-	cache := new(mocks.Cache)
-	res := ""
-	cache.On("Set", mock.Anything, mock.Anything).Return(nil).Once().Run(func(args mock.Arguments) {
-		res = args[1].(string)
+			// missing value case
+			Convey("with missing value in cache", func() {
+				const expectedError = "test error"
+				const expectedBody = "Can't get value for key 'test': " + expectedError
+				cacheMock.On("Get", "test").Return("", fmt.Errorf(expectedError)).Once()
+				err = handler.Get(context)
+
+				So(err, ShouldBeNil)
+				So(recorder.Code, ShouldEqual, http.StatusBadRequest)
+				So(recorder.Body.String(), ShouldEqual, expectedBody)
+				So(cacheMock.AssertExpectations(t), ShouldBeTrue)
+			})
+
+		})
+
+		// CacheHandler.Set
+		Convey("When I try to set value for 'test' key", func() {
+
+			//Init
+			const savedContent = "test content"
+			var (
+				request *http.Request
+			)
+			request = httptest.NewRequest(echo.POST, "/redis/test", nil)
+			request.Form = url.Values{
+				"value": []string{savedContent},
+			}
+			request.Header = http.Header{"Content-Type": []string{"form-data"}}
+			context = engine.NewContext(request, recorder)
+			context = initCtx(context, "/redis/:key", "key", "test")
+			cacheMock = new(mocks.Cache)
+			context.Set("cache", cacheMock)
+
+			// straight case
+			Convey("without error", func() {
+				const expectedMsg = "Value stored successfully"
+				const expectedContent = "test content"
+				var res string
+				cacheMock.On("Set", mock.Anything, mock.Anything).Return(nil).Once().Run(func(args mock.Arguments) {
+					res = args[1].(string)
+				})
+				err = handler.Set(context)
+
+				So(err, ShouldBeNil)
+				So(recorder.Code, ShouldEqual, http.StatusOK)
+				So(recorder.Body.String(), ShouldEqual, expectedMsg)
+				So(res, ShouldEqual, expectedContent)
+				So(cacheMock.AssertExpectations(t), ShouldBeTrue)
+			})
+
+			// cache error case
+			Convey("with cache error", func() {
+				const expectedError = "test error"
+				const expectedRes = "Can't set value for key 'test': " + expectedError
+				cacheMock.On("Set", mock.Anything, mock.Anything).Return(fmt.Errorf(expectedError)).Once()
+				err = handler.Set(context)
+
+				So(err, ShouldBeNil)
+				So(recorder.Code, ShouldEqual, http.StatusBadRequest)
+				So(recorder.Body.String(), ShouldEqual, expectedRes)
+				So(cacheMock.AssertExpectations(t), ShouldBeTrue)
+			})
+
+		})
 	})
-	c.Set("cache", cache)
-	h := handlers.NewCacheHandler()
-
-	// Assertions
-	if assert.NoError(h.Set(c)) {
-		assert.Equal(http.StatusOK, rec.Code)
-		assert.Equal(expectedMsg, rec.Body.String())
-		assert.Equal(savedContent, res)
-		assert.True(cache.AssertExpectations(t))
-	}
-}
-
-func TestHandlerSetError(t *testing.T) {
-	assert := assert.New(t)
-	const savedContent = "test content"
-	const expectedError = "test error"
-	const expectedRes = "Can't set value for key 'test': test error"
-
-	// Setup
-	e := echo.New()
-	req := httptest.NewRequest(echo.POST, "/redis/test", nil)
-	req.Form = url.Values{
-		"value": []string{savedContent},
-	}
-	req.Header = http.Header{"Content-Type": []string{"form-data"}}
-	rec := httptest.NewRecorder()
-	c := e.NewContext(req, rec)
-	c = initCtx(c, "/redis/:key", "key", "test")
-	cache := new(mocks.Cache)
-	cache.On("Set", mock.Anything, mock.Anything).Return(fmt.Errorf(expectedError)).Once()
-	c.Set("cache", cache)
-	h := handlers.NewCacheHandler()
-
-	// Assertions
-	if assert.NoError(h.Set(c)) {
-		assert.Equal(http.StatusBadRequest, rec.Code)
-		assert.Equal(expectedRes, rec.Body.String())
-		assert.True(cache.AssertExpectations(t))
-	}
 }

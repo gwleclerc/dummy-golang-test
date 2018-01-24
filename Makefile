@@ -1,4 +1,4 @@
-.PHONY: build run test lint generate
+.PHONY: build run test lint generate convey
 
 default: run
 
@@ -10,6 +10,7 @@ run:
 	rerun github.com/gwleclerc/dummy-golang-test
 
 test:
+	go get github.com/smartystreets/goconvey
 	go get github.com/AlekSi/gocoverutil
 	go get github.com/axw/gocov/...
 	go get github.com/AlekSi/gocov-xml
@@ -24,6 +25,10 @@ lint:
 	mkdir -p ./dist || true
 	gometalinter --install --force
 	gometalinter --fast --tests --vendor --disable=gas --disable=gotype --checkstyle -e mocks ./... > ./dist/checkstyle.xml
+
+convey:
+	go get github.com/smartystreets/goconvey
+	goconvey ./...
 
 generate:
 	go get github.com/vektra/mockery/.../
