@@ -1,2 +1,3 @@
 *.debug
 dummy-golang-test
+dist
