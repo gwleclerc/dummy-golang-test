@@ -42,6 +42,7 @@ func initCtx(c echo.Context, path, key, value string) (echo.Context, *stubCache)
 }
 
 func TestHandlerGet(t *testing.T) {
+	assert := assert.New(t)
 	const expectedContent = "test content"
 
 	// Setup
@@ -54,13 +55,14 @@ func TestHandlerGet(t *testing.T) {
 	h := handlers.NewCacheHandler()
 
 	// Assertions
-	if assert.NoError(t, h.Get(c)) {
-		assert.Equal(t, http.StatusOK, rec.Code)
-		assert.Equal(t, expectedContent, rec.Body.String())
+	if assert.NoError(h.Get(c)) {
+		assert.Equal(http.StatusOK, rec.Code)
+		assert.Equal(expectedContent, rec.Body.String())
 	}
 }
 
 func TestHandlerSet(t *testing.T) {
+	assert := assert.New(t)
 	const savedContent = "test content"
 	const expectedMsg = "Value stored successfully"
 
@@ -77,9 +79,9 @@ func TestHandlerSet(t *testing.T) {
 	h := handlers.NewCacheHandler()
 
 	// Assertions
-	if assert.NoError(t, h.Set(c)) {
-		assert.Equal(t, http.StatusOK, rec.Code)
-		assert.Equal(t, expectedMsg, rec.Body.String())
-		assert.Equal(t, savedContent, store.StoredValues["test"])
+	if assert.NoError(h.Set(c)) {
+		assert.Equal(http.StatusOK, rec.Code)
+		assert.Equal(expectedMsg, rec.Body.String())
+		assert.Equal(savedContent, store.StoredValues["test"])
 	}
 }
